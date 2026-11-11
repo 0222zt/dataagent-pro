@@ -1,0 +1,31 @@
+# 密钥与本地配置绝不进镜像
+.env
+.env.*
+!.env.example
+
+# 运行期数据
+data/
+*.log
+
+# 开发产物
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.sqlite3
+
+# 编辑器 / 系统
+.git/
+.gitignore
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# 与运行无关
+tests/
+sample_data/*.xlsx
+sample_data/示例数据_销售明细.csv

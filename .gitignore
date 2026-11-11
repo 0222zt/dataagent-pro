@@ -1,0 +1,21 @@
+# 密钥与运行期配置
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# 运行产物
+data/
+*.log
+public_url.txt
+.DS_Store
+Thumbs.db

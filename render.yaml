@@ -1,0 +1,44 @@
+# Render 一键部署配置（https://render.com/docs/blueprint-spec）
+# 用法：把仓库推到 GitHub → Render 新建 Blueprint → 选择仓库 → 填写两个密钥。
+services:
+  - type: web
+    name: dataagent-pro
+    runtime: docker
+    plan: free
+    region: singapore
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      # 在 Render 控制台填写；不要提交到仓库
+      - key: DATAAGENT_API_KEY
+        sync: false
+      # HR 打开链接后需要输入的访问码（建议 8 位以上随机串）
+      - key: DATAAGENT_ACCESS_CODE
+        sync: false
+      # 公网演示：首屏自动载入示例数据
+      - key: DATAAGENT_DEMO
+        value: "1"
+      - key: DATAAGENT_PROVIDER
+        value: siliconflow
+      - key: DATAAGENT_MODEL
+        value: deepseek-ai/DeepSeek-V4.1-Flash
+      # 免费档资源保护：5 MB / 2 万行 / 5 个数据集 / 1 小时过期 / 每分钟 30 次
+      - key: DATAAGENT_MAX_FILE_SIZE
+        value: "5242880"
+      - key: DATAAGENT_MAX_ROWS
+        value: "20000"
+      - key: DATAAGENT_MAX_DATASETS
+        value: "5"
+      - key: DATAAGENT_DATASET_TTL
+        value: "3600"
+      - key: DATAAGENT_RATE_LIMIT
+        value: "30"
+      # 只有自然语言生成会消耗模型额度：每 IP 每分钟 3 次、每天 50 次
+      - key: DATAAGENT_LLM_RATE_LIMIT
+        value: "3"
+      - key: DATAAGENT_LLM_DAILY_LIMIT
+        value: "50"
+      - key: DATAAGENT_EXEC_TIMEOUT
+        value: "10"
+      - key: DATAAGENT_LOG_LEVEL
+        value: INFO

@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DataAgent Pro · 拖字段，即出图</title>
+  <meta
+    name="description"
+    content="三栏式图表工作台：拖拽字段即时生成 Plotly 图表，复杂需求交给模型并自动修复。内置安全沙箱、多轮会话与一键导出。"
+  />
+  <link
+    rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>"
+  />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">📊</div>
+        <div>
+          <h1>DataAgent Pro</h1>
+          <p>拖字段 · 即时出图 · AI 兜底</p>
+        </div>
+      </div>
+
+      <div class="topbar-middle">
+        <span class="pill ghost" id="datasetPill" title="当前数据集">未加载数据</span>
+      </div>
+
+      <div class="topbar-right">
+        <span class="pill" id="modelPill" title="当前模型">连接中…</span>
+        <div class="health" id="health" title="正在检查服务状态">
+          <i id="healthDot"></i>
+          <span id="healthText">检查中…</span>
+        </div>
+        <button class="btn tiny" id="historyBtn" type="button" title="查看最近图表与会话">
+          历史
+        </button>
+        <button class="icon-btn" id="themeBtn" type="button" title="切换亮色 / 暗色主题">
+          🌙
+        </button>
+      </div>
+    </header>
+
+    <div class="demo-bar hidden" id="demoBar">
+      <span class="demo-dot" aria-hidden="true"></span>
+      <span class="demo-text">正在展示<strong>示例数据</strong>：2025 年销售明细，可直接拖字段或点推荐图表</span>
+      <label class="btn tiny" for="fileInput">换成我的数据</label>
+    </div>
+
+    <main class="workbench">
+      <!-- 左栏：数据 + 字段 + 推荐 -->
+      <aside class="pane pane-left">
+        <section class="pane-block">
+          <div class="pane-head">
+            <h2>数据源</h2>
+            <span class="badge" id="datasetBadge">未上传</span>
+          </div>
+
+          <label class="drop compact" id="drop" for="fileInput">
+            <input
+              class="hidden"
+              type="file"
+              id="fileInput"
+              accept=".csv,.tsv,.xlsx,.xls,.json"
+            />
+            <span class="drop-icon" aria-hidden="true">📄</span>
+            <b>点击或拖入表格</b>
+            <small>CSV / TSV / Excel / JSON · 单文件 ≤ <span id="fileSizeHint">100</span> MB</small>
+            <em id="fileName">还没有选择文件</em>
+          </label>
+
+          <p class="summary" id="summary">上传一份带表头的表格就能开始。</p>
+          <div class="chips" id="chips"></div>
+        </section>
+
+        <section class="pane-block grow">
+          <div class="pane-head">
+            <h2>字段</h2>
+            <span class="count" id="fieldCount">0</span>
+          </div>
+          <p class="pane-hint">拖到右侧通道槽，或点字段上的 X / Y / 色 快速分配。</p>
+          <div class="field-list" id="fieldList">
+            <p class="hint">还没有字段。</p>
+          </div>
+        </section>
+
+        <section class="pane-block">
+          <div class="pane-head">
+            <h2>推荐图表</h2>
+            <span class="count" id="recCount">0</span>
+          </div>
+          <div class="rec-list" id="recList">
+            <p class="hint">上传数据后自动推荐。</p>
+          </div>
+        </section>
+
+        <section class="pane-block">
+          <div class="pane-head">
+            <h2>数据预览</h2>
+          </div>
+          <div class="table-wrap compact hidden" id="tableWrap">
+            <table id="previewTable"></table>
+          </div>
+        </section>
+      </aside>
+
+      <!-- 中栏：画布 -->
+      <section class="pane pane-center">
+        <div class="canvas-head">
+          <div class="chart-types" id="chartTypes" role="tablist" aria-label="图表类型">
+            <button type="button" data-type="bar" class="active">柱状图</button>
+            <button type="button" data-type="line">折线图</button>
+            <button type="button" data-type="area">面积图</button>
+            <button type="button" data-type="scatter">散点图</button>
+            <button type="button" data-type="pie">饼图</button>
+            <button type="button" data-type="box">箱线图</button>
+          </div>
+          <div class="canvas-tools">
+            <div class="badges" id="resultBadges"></div>
+            <button class="btn tiny" id="pngBtn" type="button" disabled title="下载当前图表为 PNG">PNG</button>
+            <button class="btn tiny" id="htmlBtn" type="button" disabled title="导出可独立打开的交互 HTML">HTML</button>
+            <button class="btn tiny" id="csvBtn" type="button" disabled title="导出图表中的 x / y 数据">CSV</button>
+            <button class="btn tiny" id="reportBtn" type="button" disabled title="导出带需求与代码的分析报告">报告</button>
+          </div>
+        </div>
+
+        <div class="error hidden" id="errorBox"></div>
+
+        <div class="chart-area">
+          <div id="chart"></div>
+          <div class="overlay" id="overlay">
+            <div class="empty" id="emptyState">
+              <span aria-hidden="true">🧩</span>
+              <b>拖一个字段，开始作图</b>
+              <small>把分类字段拖到 X 轴、数值字段拖到 Y 轴；也可以直接点推荐图表</small>
+            </div>
+            <div class="loading hidden" id="loadingState">
+              <div class="spinner" aria-hidden="true"></div>
+              <p id="loadingText">正在准备…</p>
+              <ul class="stages" id="stages"></ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="canvas-foot">
+          <p class="footnote" id="footnote">拖字段走确定性编译，不调用模型；复杂需求用右侧 AI 助手。</p>
+          <button class="link" id="toggleCode" type="button">查看编译代码</button>
+        </div>
+
+        <div class="code-panel hidden" id="codePanel">
+          <div class="code-head">
+            <span>实际执行的代码（受限沙箱内运行）</span>
+            <span>
+              <button class="link" id="copyCode" type="button">复制</button>
+              <button class="link" id="toggleCodeInline" type="button">收起</button>
+            </span>
+          </div>
+          <pre><code id="code"></code></pre>
+        </div>
+      </section>
+
+      <!-- 右栏：视觉通道 + 探索 + AI -->
+      <aside class="pane pane-right">
+        <section class="pane-block">
+          <div class="pane-head">
+            <h2>视觉通道</h2>
+            <button class="link" id="clearChannels" type="button">清空</button>
+          </div>
+
+          <div class="slots" id="slots">
+            <div class="slot" data-channel="x">
+              <span class="slot-tag">X</span>
+              <span class="slot-body">
+                <b>拖入字段</b>
+                <small>分类 / 时间</small>
+              </span>
+              <button class="slot-clear hidden" type="button" data-clear="x" title="移除字段">×</button>
+            </div>
+            <div class="slot" data-channel="y">
+              <span class="slot-tag">Y</span>
+              <span class="slot-body">
+                <b>拖入字段</b>
+                <small>数值指标</small>
+              </span>
+              <button class="slot-clear hidden" type="button" data-clear="y" title="移除字段">×</button>
+            </div>
+            <div class="slot" data-channel="color">
+              <span class="slot-tag">色</span>
+              <span class="slot-body">
+                <b>可选</b>
+                <small>按分类拆分</small>
+              </span>
+              <button class="slot-clear hidden" type="button" data-clear="color" title="移除字段">×</button>
+            </div>
+          </div>
+
+          <div class="controls">
+            <label>
+              <span>聚合</span>
+              <select id="aggregation">
+                <option value="sum">求和</option>
+                <option value="mean">平均值</option>
+                <option value="count">计数</option>
+                <option value="max">最大值</option>
+                <option value="min">最小值</option>
+                <option value="none">不聚合</option>
+              </select>
+            </label>
+            <label>
+              <span>排序</span>
+              <select id="sort">
+                <option value="none">默认</option>
+                <option value="desc">降序</option>
+                <option value="asc">升序</option>
+              </select>
+            </label>
+            <label class="topn">
+              <span>Top N</span>
+              <input id="topN" type="number" min="0" max="200" step="1" value="0" title="0 表示显示全部" />
+            </label>
+          </div>
+
+          <div class="warn-list hidden" id="specWarn"></div>
+
+          <div class="actions">
+            <button class="btn primary" id="applySpecBtn" type="button" disabled>更新图表</button>
+          </div>
+        </section>
+
+        <section class="pane-block">
+          <div class="pane-head">
+            <h2>探索路径</h2>
+          </div>
+          <div class="explore-list" id="exploreList">
+            <p class="hint">出图后这里会出现下一步建议。</p>
+          </div>
+        </section>
+
+        <section class="pane-block grow">
+          <div class="pane-head">
+            <h2>AI 助手</h2>
+            <span class="badge" id="sessionBadge">新会话</span>
+          </div>
+          <p class="pane-hint">槽位表达不了的复杂需求交给模型，同样走沙箱 + 自愈。</p>
+          <textarea
+            id="prompt"
+            placeholder="例如：按月份统计销售额画折线并标出最高点；或把柱状图改成按地区分组的堆叠图。"
+            spellcheck="false"
+          ></textarea>
+          <div class="actions">
+            <button class="btn primary" id="generateBtn" type="button" disabled>生成</button>
+            <button class="btn ghost" id="refreshBtn" type="button" title="忽略缓存，让模型重新生成" disabled>
+              重新生成
+            </button>
+            <button class="btn ghost" id="newSessionBtn" type="button" title="开始一段新的多轮对话">
+              新会话
+            </button>
+          </div>
+          <p class="hint">快捷键：Ctrl / ⌘ + Enter。追问会带上上一轮代码。</p>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <div class="scrim hidden" id="scrim"></div>
+
+  <aside class="drawer" id="drawer" aria-label="历史记录">
+    <div class="drawer-head">
+      <h3>历史记录</h3>
+      <button class="icon-btn" id="closeDrawer" type="button" title="关闭">✕</button>
+    </div>
+    <div class="drawer-body">
+      <div class="card-head">
+        <h2>最近图表</h2>
+        <span class="badge" id="chartCount">0</span>
+      </div>
+      <div id="chartList"></div>
+
+      <div class="card-head" style="margin-top: 10px">
+        <h2>会话</h2>
+        <span class="badge" id="sessionCount">0</span>
+      </div>
+      <div id="sessionList"></div>
+    </div>
+  </aside>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script
+    src="/vendor/plotly.min.js"
+    onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/plotly.js-dist-min@3/plotly.min.js';"
+  ></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
