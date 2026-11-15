@@ -5,7 +5,9 @@
 推荐顺序：
 
 1. **0 元：本机 + Cloudflare 快速隧道**：不注册、不绑卡，`trycloudflare.com` 国内实测可达。代价是电脑要开机、每次重启域名会变。
-2. **Render**：连 GitHub 自动构建。⚠️ 国内实测 `onrender.com` 无法访问，只适合海外访问者。
+2. **0 元：Render 免费容器**（见第二节）：连 GitHub 自动构建，**电脑关机也能访问**、不用绑卡。代价是 15 分钟无访问会休眠、首次打开等 30–60 秒；⚠️ `onrender.com` 国内实测无法访问，国内访问者需自备域名或换方案。
+
+> 硬性要求是「本机可以关机」→ 直接看第二节；硬性要求是「国内秒开 + 永久在线 + 不花钱」→ 见第二节末尾的说明，免费 PaaS 满足不了。
 3. **Railway**：同样识别 `Dockerfile`，但免费额度只有 30 天 $5，之后 $1/月跑不住常驻服务。
 4. **阿里云 / 腾讯云**：国内最稳、可长期放简历；8000 端口直连不需要备案。
 
@@ -47,7 +49,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\start_public_demo.ps
 
 | 限制 | 影响 | 规避 |
 | --- | --- | --- |
-| 电脑关机 / 休眠 / 断网 → 链接立刻失效 | HR 打开会看到错误页 | 电源计划里把“睡眠”设为“从不”；投递后保持开机 |
+| 电脑关机 / 休眠 / 断网 → 链接立刻失效 | HR 打开会看到错误页 | 电源计划里把“睡眠”设为“从不”；或改用第二节的 Render 免费部署，本机开关机都不影响 |
 | 每次重启隧道域名都变 | 简历里写死的链接会过期 | 面试窗口期内不重启；或改用腾讯云轻量（68 元/年）拿固定 IP |
 | Cloudflare 快速隧道无 SLA | 偶发连不上，重开脚本即可 | 演示前自己先点一次预热 |
 | 走的是你家宽带上行 | 上传大文件会慢 | 演示用内置示例数据，5 MB 以内很快 |
@@ -72,30 +74,47 @@ python -c "import secrets; print(secrets.token_urlsafe(9))"
 
 ---
 
-## 二、Render 部署（推荐）
+## 二、Render 免费部署（电脑关机也能访问）
 
-1. 把项目推到 GitHub（`.env` 已被忽略，不会泄露 Key）。
-2. 打开 <https://dashboard.render.com/blueprints> → **New Blueprint Instance**。
-3. 选择仓库，Render 会读取根目录的 `render.yaml`。
-4. 在环境变量里填写：
-   - `DATAAGENT_API_KEY` = 你的 SiliconFlow Key
-   - `DATAAGENT_ACCESS_CODE` = 访问码
-5. 点 **Apply**，等待 Docker 构建（首次约 3–6 分钟）。
-6. 打开 `https://<服务名>.onrender.com`，输入访问码即可。
+这一节解决的是「不打开电脑 / 电脑关机也要能访问」。服务跑在 Render 的容器里，你的电脑只用来改代码和 `git push`，之后关机、休眠、断网都不影响链接。
 
-`render.yaml` 已内置公网资源限制：
+**前提**：一个 GitHub 账号（仓库已就绪）和一个 Render 账号（可用 GitHub 登录，免费档不需要信用卡）。API Key 与访问码只填在 Render 控制台，不进仓库。
 
-| 变量 | 值 | 原因 |
+### 部署步骤
+
+1. 确认代码已推到 GitHub 的 `main`，`Dockerfile` 与 `render.yaml` 都在仓库根目录。
+2. 打开 <https://dashboard.render.com/blueprints> → **New Blueprint Instance** → 用 GitHub 登录并授权 → 选择 `0222zt/dataagent-pro`、分支 `main`。
+3. Render 读取 `render.yaml`：服务名 `dataagent-pro`、免费档、新加坡区、Docker 运行时、健康检查 `/api/health`（该路径已免访问码）。
+4. 在 **Environment Variables** 里填两个 `sync: false` 的密钥：
+   - `DATAAGENT_API_KEY` = SiliconFlow 的 Key（建议单独申请低额度 Key，不要用主 Key）
+   - `DATAAGENT_ACCESS_CODE` = 访问码，8 位以上随机串（生成命令见第一节）
+5. 点 **Apply**，首次 Docker 构建约 3–6 分钟。健康检查变绿即成功。
+6. 打开控制台给出的 `https://<服务名>.onrender.com`，输入访问码；`DATAAGENT_DEMO=1` 会自动载入示例数据。
+
+`render.yaml` 已内置演示限额：5 MB / 2 万行 / 5 数据集 / 1 小时过期 / 每 IP 每分钟 30 次 / AI 每 IP 每分钟 3 次、每天 50 次。
+
+### 部署后自检
+
+| 检查 | 期望 |
+| --- | --- |
+| `https://<服务名>.onrender.com/api/health` | 直接返回 200，不需要访问码 |
+| 首页 | 先出现访问码页 |
+| 输入访问码后 | 三栏工作台 + 示例数据自动出图 |
+| 上传 CSV 并拖字段 | 确定性出图 |
+| 本机 `git push` 后 | `autoDeploy: true` 自动重新构建部署 |
+
+### 免费档的真实限制（2026 年）
+
+| 限制 | 影响 | 建议 |
 | --- | --- | --- |
-| `DATAAGENT_MAX_FILE_SIZE` | `5242880`（5 MB） | 免费档内存有限 |
-| `DATAAGENT_MAX_ROWS` | `20000` | 避免大表拖慢沙箱 |
-| `DATAAGENT_MAX_DATASETS` | `5` | 控制内存占用 |
-| `DATAAGENT_DATASET_TTL` | `3600` | 1 小时后自动清理 |
-| `DATAAGENT_RATE_LIMIT` | `30` | 每分钟每 IP 30 次，够正常交互又能防刷 |
-| `DATAAGENT_LLM_RATE_LIMIT` | `3` | 只有自然语言生成算额度，每分钟每 IP 3 次 |
-| `DATAAGENT_LLM_DAILY_LIMIT` | `50` | 每 IP 每天 50 次模型调用，把最坏情况锁死 |
+| 15 分钟无入站流量即缩容 | 首次打开要等 30–60 秒 | 投递 / 演示前自己点一次预热；**不要**配 24/7 定时 ping，会吃光 750 小时额度且可能违反平台可接受使用政策 |
+| 750 实例小时/月、5 GB 出站/月 | 一个常驻服务勉强够，超出暂停到次月 | 只在演示窗口期开放，不要挂公开爬虫 |
+| 512 MB / 0.1 CPU | 大表会慢 | 已在 `render.yaml` 限到 5 MB / 2 万行 / 5 数据集 |
+| 文件系统不持久、实例随时重启 | 上传数据与对话历史会丢 | 演示数据本来就是 1 小时 TTL，且启动时自动重建，**符合演示定位**；不要当正式存储 |
+| `onrender.com` 国内实测不可达 | 国内 HR 打不开 | 已有自己的域名时在 Render 加 Custom Domain（免费档支持 + 免费 TLS）；否则用腾讯云轻量（约 5.7 元/月）或第零节的 Cloudflare 隧道 |
+| 免费 Postgres 30 天过期 | 无影响 | 本项目用本地 SQLite + 临时目录，不依赖托管数据库 |
 
-> Render 免费档 15 分钟无访问会休眠，首次打开需要 30–60 秒唤醒。简历投递前可以先自己点一次预热。
+> 想要「真 24/7 不休眠 + 国内可达 + 仍然免费」，免费 PaaS 做不到：需要一台永久免费的 VPS（Oracle Cloud Always Free）再挂 `cloudflared` 快速隧道，代价是要注册账号并做一次服务器初始化。
 
 ---
 

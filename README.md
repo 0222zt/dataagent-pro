@@ -312,7 +312,7 @@ winget install --id Cloudflare.cloudflared --silent   # 只需一次
 
 窗口会打印公网链接和访问码，Ctrl+C 即停。注意：电脑需保持开机，隧道重启后域名会变。
 
-**固定链接**：推到 GitHub → Render / Railway / 腾讯云轻量（详见 DEPLOY.md）。⚠️ `onrender.com` 国内实测无法访问。
+**固定链接 / 电脑关机也能访问**：推到 GitHub → Render 免费一键部署（`render.yaml` 已配好，详见 DEPLOY.md 第二节）。服务跑在云端，本机开关机都不影响；代价是 15 分钟无访问会休眠、首次打开要等 30–60 秒。⚠️ `onrender.com` 国内实测无法访问，国内访问者请自备域名或用腾讯云轻量。
 
 Docker 本地验证：
 

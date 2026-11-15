@@ -1,5 +1,7 @@
 # Render 一键部署配置（https://render.com/docs/blueprint-spec）
 # 用法：把仓库推到 GitHub → Render 新建 Blueprint → 选择仓库 → 填写两个密钥。
+# 免费档（2026）：512 MB / 0.1 CPU、750 实例小时每月、5 GB 出站每月；
+# 15 分钟无入站流量会休眠，再次访问约 30-60 秒唤醒。无需信用卡、无需持久盘。
 services:
   - type: web
     name: dataagent-pro
