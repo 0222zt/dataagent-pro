@@ -153,7 +153,8 @@ DataAgent_Pro/
 ├─ .env.example          # 配置模板
 ├─ requirements.txt
 ├─ Dockerfile            # 公网镜像
-├─ render.yaml           # Render 一键部署
+├─ render.yaml           # Render 一键部署（备选）
+├─ deploy/vps/           # Oracle 免费 VPS + cloudflared 一键部署（推荐）
 ├─ DEPLOY.md             # 公网部署与访问码说明
 ├─ pyproject.toml        # ruff 规则
 └─ run.py                # python run.py 开发启动
@@ -312,7 +313,9 @@ winget install --id Cloudflare.cloudflared --silent   # 只需一次
 
 窗口会打印公网链接和访问码，Ctrl+C 即停。注意：电脑需保持开机，隧道重启后域名会变。
 
-**固定链接 / 电脑关机也能访问**：推到 GitHub → Render 免费一键部署（`render.yaml` 已配好，详见 DEPLOY.md 第二节）。服务跑在云端，本机开关机都不影响；代价是 15 分钟无访问会休眠、首次打开要等 30–60 秒。⚠️ `onrender.com` 国内实测无法访问，国内访问者请自备域名或用腾讯云轻量。
+**电脑关机也能访问（推荐）**：用 Oracle Cloud Always Free 的免费 VPS 跑 Docker，再挂 `cloudflared` 快速隧道 —— 0 元、真 24/7、不休眠、国内可达，本机开关机都不影响。在 VPS 上执行 `deploy/vps/bootstrap.sh` 即可，详见 DEPLOY.md 第二节。
+
+**备选**：Render 免费一键部署（`render.yaml` 已配好，DEPLOY.md 第三节）—— 会休眠、首次打开等 30–60 秒，⚠️ `onrender.com` 国内实测无法访问，国内访问者请自备域名或改用上面的 VPS 方案。
 
 Docker 本地验证：
 

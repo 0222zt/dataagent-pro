@@ -838,66 +838,124 @@ function onStage(event) {
   }
 }
 
-async function streamChat(payload) {
-  const response = await fetch('/api/chat/stream', {
+// Cloudflare 快速隧道不转发 SSE。首包迟迟不来时改用已有的 /api/chat 普通接口，
+// 让 AI 问答在隧道后依旧可用；原生 SSE 环境下行为完全不变。
+const STREAM_FIRST_BYTE_TIMEOUT_MS = 15000;
+
+async function plainChat(payload) {
+  const response = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  if (!response.ok) {
-    const text = await response.text();
-    let data = null;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = null;
-    }
-    throw makeError(data || { message: `请求失败（HTTP ${response.status}）` });
+  let data = null;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
   }
-  if (!response.body) {
-    throw new Error('当前浏览器不支持流式读取，请换用新版 Chrome / Edge');
-  }
+  if (!response.ok) throw makeError(data || { message: `请求失败（HTTP ${response.status}）` });
+  if (!data) throw new Error('服务端返回了空结果');
+  return data;
+}
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder('utf-8');
-  let buffer = '';
-  let result = null;
-  let failure = null;
+async function streamChat(payload) {
+  const controller = new AbortController();
+  let gotChunk = false;
+  const timer = setTimeout(() => {
+    if (!gotChunk) controller.abort();
+  }, STREAM_FIRST_BYTE_TIMEOUT_MS);
 
-  const consume = (raw) => {
-    const data = raw
-      .split('\n')
-      .filter((line) => line.startsWith('data:'))
-      .map((line) => line.slice(5).trim())
-      .join('');
-    if (!data) return;
-    let event = null;
-    try {
-      event = JSON.parse(data);
-    } catch {
-      return;
+  try {
+    const response = await fetch('/api/chat/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      let data = null;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = null;
+      }
+      throw makeError(data || { message: `请求失败（HTTP ${response.status}）` });
     }
-    if (event.type === 'stage') onStage(event);
-    else if (event.type === 'result') result = event.data;
-    else if (event.type === 'error') failure = event.error || { message: '生成失败' };
-  };
-
-  for (;;) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    let index = buffer.indexOf('\n\n');
-    while (index !== -1) {
-      consume(buffer.slice(0, index));
-      buffer = buffer.slice(index + 2);
-      index = buffer.indexOf('\n\n');
+    if (!response.body) {
+      throw new Error('当前浏览器不支持流式读取，请换用新版 Chrome / Edge');
     }
-  }
-  buffer += decoder.decode();
-  if (buffer.trim()) consume(buffer);
 
-  if (failure) throw makeError(failure);
-  return result;
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+    let result = null;
+    let failure = null;
+
+    const consume = (raw) => {
+      const data = raw
+        .split('\n')
+        .filter((line) => line.startsWith('data:'))
+        .map((line) => line.slice(5).trim())
+        .join('');
+      if (!data) return;
+      let event = null;
+      try {
+        event = JSON.parse(data);
+      } catch {
+        return;
+      }
+      if (event.type === 'stage') onStage(event);
+      else if (event.type === 'result') result = event.data;
+      else if (event.type === 'error') failure = event.error || { message: '生成失败' };
+    };
+
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      gotChunk = true;
+      clearTimeout(timer);
+      buffer += decoder.decode(value, { stream: true });
+      let index = buffer.indexOf('\n\n');
+      while (index !== -1) {
+        consume(buffer.slice(0, index));
+        buffer = buffer.slice(index + 2);
+        index = buffer.indexOf('\n\n');
+      }
+    }
+    buffer += decoder.decode();
+    if (buffer.trim()) consume(buffer);
+
+    if (failure) throw makeError(failure);
+    if (!result) {
+      const blocked = new Error('流式通道没有返回结果');
+      blocked.streamBlocked = true;
+      throw blocked;
+    }
+    return result;
+  } catch (err) {
+    // 首包之前出现任何异常（超时、被代理缓冲、连不上、老浏览器没有流）
+    // 都交给普通接口兜底；流式已经开始就不再降级，避免重复生成。
+    if (!gotChunk) {
+      const blocked = new Error('流式通道不可用');
+      blocked.streamBlocked = true;
+      blocked.cause = err;
+      throw blocked;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function chatRequest(payload) {
+  try {
+    return await streamChat(payload);
+  } catch (err) {
+    if (err && err.streamBlocked) return plainChat(payload);
+    throw err;
+  }
 }
 
 async function generate(refresh = false) {
@@ -920,7 +978,7 @@ async function generate(refresh = false) {
   state.chartTitle = prompt.slice(0, 40) || 'DataAgent 图表';
 
   try {
-    const result = await streamChat({
+    const result = await chatRequest({
       dataset_id: state.dataset.dataset_id,
       prompt,
       session_id: state.sessionId,

@@ -1,0 +1,4 @@
+# Linux 部署脚本必须保持 LF：Windows 上 clone 时也不要被 core.autocrlf 转成 CRLF
+deploy/vps/*.sh text eol=lf
+deploy/vps/keepalive.py text eol=lf
+deploy/vps/env.template text eol=lf
