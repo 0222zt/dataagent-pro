@@ -6,11 +6,11 @@
   <title>DataAgent Pro · 拖字段，即出图</title>
   <meta
     name="description"
-    content="三栏式图表工作台：拖拽字段即时生成 Plotly 图表，复杂需求交给模型并自动修复。内置安全沙箱、多轮会话与一键导出。"
+    content="三栏式图表工作台：把字段拖进通道即可生成 Plotly 图表，复杂需求交给模型并自动修复。内置安全沙箱、多轮会话与一键导出。"
   />
   <link
     rel="icon"
-    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M4 4v24h24' fill='none' stroke='%231e1c18' stroke-width='2'/%3E%3Crect x='8' y='18' width='4' height='10' fill='%232b5f9e'/%3E%3Crect x='15' y='12' width='4' height='16' fill='%232b5f9e'/%3E%3Crect x='22' y='7' width='4' height='21' fill='%232b5f9e'/%3E%3C/svg%3E"
   />
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
@@ -18,10 +18,12 @@
   <div class="app">
     <header class="topbar">
       <div class="brand">
-        <div class="brand-mark" aria-hidden="true">📊</div>
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg>
+        </div>
         <div>
           <h1>DataAgent Pro</h1>
-          <p>拖字段 · 即时出图 · AI 兜底</p>
+          <p>字段到图表的工作台</p>
         </div>
       </div>
 
@@ -38,8 +40,8 @@
         <button class="btn tiny" id="historyBtn" type="button" title="查看最近图表与会话">
           历史
         </button>
-        <button class="icon-btn" id="themeBtn" type="button" title="切换亮色 / 暗色主题">
-          🌙
+        <button class="icon-btn" id="themeBtn" type="button" title="切换到暗色主题">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/></svg>
         </button>
       </div>
     </header>
@@ -66,13 +68,15 @@
               id="fileInput"
               accept=".csv,.tsv,.xlsx,.xls,.json"
             />
-            <span class="drop-icon" aria-hidden="true">📄</span>
+            <span class="drop-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/></svg>
+            </span>
             <b>点击或拖入表格</b>
             <small>CSV / TSV / Excel / JSON · 单文件 ≤ <span id="fileSizeHint">100</span> MB</small>
             <em id="fileName">还没有选择文件</em>
           </label>
 
-          <p class="summary" id="summary">上传一份带表头的表格就能开始。</p>
+          <p class="summary" id="summary">上传一份带表头的表格就能开始</p>
           <div class="chips" id="chips"></div>
         </section>
 
@@ -81,9 +85,9 @@
             <h2>字段</h2>
             <span class="count" id="fieldCount">0</span>
           </div>
-          <p class="pane-hint">拖到右侧通道槽，或点字段上的 X / Y / 色 快速分配。</p>
+          <p class="pane-hint">拖到右侧通道槽，或点字段上的 X / Y / 色 快速分配</p>
           <div class="field-list" id="fieldList">
-            <p class="hint">还没有字段。</p>
+            <p class="hint">还没有字段</p>
           </div>
         </section>
 
@@ -93,7 +97,7 @@
             <span class="count" id="recCount">0</span>
           </div>
           <div class="rec-list" id="recList">
-            <p class="hint">上传数据后自动推荐。</p>
+            <p class="hint">上传数据后自动推荐</p>
           </div>
         </section>
 
@@ -133,7 +137,9 @@
           <div id="chart"></div>
           <div class="overlay" id="overlay">
             <div class="empty" id="emptyState">
-              <span aria-hidden="true">🧩</span>
+              <span class="empty-glyph" aria-hidden="true">
+                <svg viewBox="0 0 96 64" width="96" height="64" fill="none"><path d="M8 6v46h80" stroke="currentColor" stroke-opacity="0.28" stroke-width="1.5" stroke-linecap="round"/><rect x="18" y="34" width="12" height="18" fill="currentColor" fill-opacity="0.14"/><rect x="36" y="26" width="12" height="26" fill="currentColor" fill-opacity="0.14"/><rect x="54" y="30" width="12" height="22" fill="currentColor" fill-opacity="0.14"/><rect x="72" y="12" width="12" height="40" fill="var(--accent)"/></svg>
+              </span>
               <b>拖一个字段，开始作图</b>
               <small>把分类字段拖到 X 轴、数值字段拖到 Y 轴；也可以直接点推荐图表</small>
             </div>
@@ -146,7 +152,7 @@
         </div>
 
         <div class="canvas-foot">
-          <p class="footnote" id="footnote">拖字段走确定性编译，不调用模型；复杂需求用右侧 AI 助手。</p>
+          <p class="footnote" id="footnote">拖字段走确定性编译，不调用模型；复杂需求用右侧 AI 助手</p>
           <button class="link" id="toggleCode" type="button">查看编译代码</button>
         </div>
 
@@ -177,7 +183,7 @@
                 <b>拖入字段</b>
                 <small>分类 / 时间</small>
               </span>
-              <button class="slot-clear hidden" type="button" data-clear="x" title="移除字段">×</button>
+              <button class="slot-clear hidden" type="button" data-clear="x" title="移除字段"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
             </div>
             <div class="slot" data-channel="y">
               <span class="slot-tag">Y</span>
@@ -185,7 +191,7 @@
                 <b>拖入字段</b>
                 <small>数值指标</small>
               </span>
-              <button class="slot-clear hidden" type="button" data-clear="y" title="移除字段">×</button>
+              <button class="slot-clear hidden" type="button" data-clear="y" title="移除字段"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
             </div>
             <div class="slot" data-channel="color">
               <span class="slot-tag">色</span>
@@ -193,7 +199,7 @@
                 <b>可选</b>
                 <small>按分类拆分</small>
               </span>
-              <button class="slot-clear hidden" type="button" data-clear="color" title="移除字段">×</button>
+              <button class="slot-clear hidden" type="button" data-clear="color" title="移除字段"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
             </div>
           </div>
 
@@ -235,7 +241,7 @@
             <h2>探索路径</h2>
           </div>
           <div class="explore-list" id="exploreList">
-            <p class="hint">出图后这里会出现下一步建议。</p>
+            <p class="hint">出图后这里会出现下一步建议</p>
           </div>
         </section>
 
@@ -244,10 +250,10 @@
             <h2>AI 助手</h2>
             <span class="badge" id="sessionBadge">新会话</span>
           </div>
-          <p class="pane-hint">槽位表达不了的复杂需求交给模型，同样走沙箱 + 自愈。</p>
+          <p class="pane-hint">槽位表达不了的复杂需求交给模型，同样走沙箱 + 自愈</p>
           <textarea
             id="prompt"
-            placeholder="例如：按月份统计销售额画折线并标出最高点；或把柱状图改成按地区分组的堆叠图。"
+            placeholder="例如：按月份统计销售额画折线并标出最高点；或把柱状图改成按地区分组的堆叠图"
             spellcheck="false"
           ></textarea>
           <div class="actions">
@@ -259,7 +265,7 @@
               新会话
             </button>
           </div>
-          <p class="hint">快捷键：Ctrl / ⌘ + Enter。追问会带上上一轮代码。</p>
+          <p class="hint">快捷键 Ctrl / ⌘ + Enter；追问会带上上一轮代码</p>
         </section>
       </aside>
     </main>
@@ -270,7 +276,9 @@
   <aside class="drawer" id="drawer" aria-label="历史记录">
     <div class="drawer-head">
       <h3>历史记录</h3>
-      <button class="icon-btn" id="closeDrawer" type="button" title="关闭">✕</button>
+      <button class="icon-btn" id="closeDrawer" type="button" title="关闭">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
     </div>
     <div class="drawer-body">
       <div class="card-head">
@@ -279,7 +287,7 @@
       </div>
       <div id="chartList"></div>
 
-      <div class="card-head" style="margin-top: 10px">
+      <div class="card-head spaced">
         <h2>会话</h2>
         <span class="badge" id="sessionCount">0</span>
       </div>

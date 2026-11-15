@@ -19,6 +19,24 @@ const CHANNEL_META = {
   color: { tag: '色', placeholder: '可选', hint: '按分类拆分' },
 };
 
+/* 统一的线性图标：一处定义，全站 1.5 描边，替代原先散落的 emoji */
+const ICON_PATHS = {
+  chart: '<path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/>',
+  fields: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/>',
+  alert: '<path d="M12 3 2 20h20L12 3Z"/><path d="M12 9v5M12 17.5v.01"/>',
+  moon: '<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  close: '<path d="M6 6l12 12M18 6 6 18"/>',
+};
+
+function icon(name, size = 16) {
+  const body = ICON_PATHS[name] || ICON_PATHS.chart;
+  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+}
+
+/* 空态里的产品视图：一张用代码画的小柱图，只有一根柱落在重点色上 */
+const EMPTY_GLYPH = `<span class="empty-glyph" aria-hidden="true"><svg viewBox="0 0 96 64" width="96" height="64" fill="none"><path d="M8 6v46h80" stroke="currentColor" stroke-opacity="0.28" stroke-width="1.5" stroke-linecap="round"/><rect x="18" y="34" width="12" height="18" fill="currentColor" fill-opacity="0.14"/><rect x="36" y="26" width="12" height="26" fill="currentColor" fill-opacity="0.14"/><rect x="54" y="30" width="12" height="22" fill="currentColor" fill-opacity="0.14"/><rect x="72" y="12" width="12" height="40" fill="var(--accent)"/></svg></span>`;
+
 const CHART_LABELS = {
   bar: '柱状图',
   line: '折线图',
@@ -159,7 +177,7 @@ function applyTheme(theme) {
   state.theme = theme === 'dark' ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', state.theme);
   localStorage.setItem('dataagent-theme', state.theme);
-  $('#themeBtn').textContent = state.theme === 'dark' ? '☀️' : '🌙';
+  $('#themeBtn').innerHTML = icon(state.theme === 'dark' ? 'sun' : 'moon', 16);
   $('#themeBtn').title = state.theme === 'dark' ? '切换到亮色主题' : '切换到暗色主题';
 }
 
@@ -182,7 +200,7 @@ async function loadHealth() {
     text.textContent = health.api_key_configured ? '就绪' : '待填 Key';
     $('#health').title = health.api_key_configured
       ? `服务正常 · ${health.provider} · 已调用 ${health.usage?.calls ?? 0} 次模型`
-      : '还没有配置 API Key：打开 .env，填写 DATAAGENT_API_KEY 后重启服务。';
+      : '还没有配置 API Key：打开 .env，填写 DATAAGENT_API_KEY 后重启服务';
     $('#modelPill').textContent = health.model || '未选择模型';
     $('#modelPill').title = [
       `模型链：${(health.model_chain || []).join(' → ')}`,
@@ -227,7 +245,7 @@ function uniqueOf(name) {
 
 function renderSummary(dataset) {
   const meta = dataset.meta || {};
-  $('#summary').textContent = dataset.summary || '数据已解析，可以开始作图。';
+  $('#summary').textContent = dataset.summary || '数据已解析，可以开始作图';
   const quality = meta.quality_score;
   if (quality != null) {
     $('#summary').textContent += ` · 质量评分 ${Math.round(quality * 100)} / 100`;
@@ -294,7 +312,7 @@ function renderFields() {
   $('#fieldCount').textContent = String(columns.length);
   const list = $('#fieldList');
   if (!columns.length) {
-    list.innerHTML = '<p class="hint">还没有字段。上传数据后这里会列出所有列。</p>';
+    list.innerHTML = '<p class="hint">还没有字段，上传数据后这里会列出所有列</p>';
     return;
   }
   list.innerHTML = columns
@@ -325,7 +343,7 @@ function renderRecommendations() {
   const items = state.recommendations || [];
   $('#recCount').textContent = String(items.length);
   if (!items.length) {
-    box.innerHTML = '<p class="hint">上传数据后自动推荐。</p>';
+    box.innerHTML = '<p class="hint">上传数据后自动推荐</p>';
     return;
   }
   box.innerHTML = items
@@ -379,10 +397,10 @@ function applyDataset(dataset) {
   $('#sessionBadge').textContent = '新会话';
   $('#sessionBadge').className = 'badge';
   setExportEnabled(false);
-  showEmpty('🧩', '数据已就绪', '点一个推荐图表，或把字段拖到右侧通道槽');
+  showEmpty('chart', '数据已就绪', '点一个推荐图表，或把字段拖到右侧通道槽');
   $('#footnote').textContent = state.isDemo
-    ? '示例数据已就绪：拖字段或点推荐图表，也可以让右侧 AI 助手解释数据。'
-    : `已加载 ${dataset.filename || '数据集'}，拖字段即可出图。`;
+    ? '示例数据已就绪：拖字段或点推荐图表，也可以让右侧 AI 助手解释数据'
+    : `已加载 ${dataset.filename || '数据集'}，拖字段即可出图`;
   syncSpecUI();
   setBusy(false);
 }
@@ -436,7 +454,7 @@ async function bootstrapSpecs() {
 /* 公网演示：首屏自动载入内置示例数据                                   */
 /* ------------------------------------------------------------------ */
 async function loadDemo() {
-  showEmpty('📊', '正在载入示例数据…', '马上就能拖字段出图');
+  showEmpty('chart', '正在载入示例数据', '马上就能拖字段出图');
   try {
     const dataset = await api('/api/demo', { method: 'POST' });
     applyDataset(dataset);
@@ -446,7 +464,7 @@ async function loadDemo() {
     // 演示模式关闭 / 示例文件缺失时，安静退回空工作台，不打扰 HR。
     console.warn('示例数据未载入：', err.message);
     showEmpty(
-      '🧩',
+      'chart',
       '上传一份表格，开始作图',
       '支持 CSV / TSV / Excel / JSON；把分类字段拖到 X 轴、数值字段拖到 Y 轴'
     );
@@ -476,7 +494,7 @@ function syncSpecUI() {
         <b>${value ? esc(value) : esc(info.placeholder)}</b>
         <small>${value ? esc(kindLabel(value)) : esc(info.hint)}</small>
       </span>
-      <button class="slot-clear ${value ? '' : 'hidden'}" type="button" data-clear="${channel}" title="移除字段">×</button>`;
+      <button class="slot-clear ${value ? '' : 'hidden'}" type="button" data-clear="${channel}" title="移除字段">${icon('close', 14)}</button>`;
   });
 
   $('#aggregation').value = spec.aggregation;
@@ -495,23 +513,23 @@ function kindLabel(name) {
 }
 
 function validateSpec() {
-  if (!state.dataset) return '请先上传数据。';
+  if (!state.dataset) return '请先上传数据';
   const spec = state.spec;
   const chart = spec.chart_type;
 
   if (chart === 'scatter') {
-    if (!spec.x || !spec.y) return '散点图需要 X 和 Y 两个字段。';
-    if (!['numeric', 'datetime'].includes(kindOf(spec.x))) return '散点图的 X 轴需要数值或时间字段。';
-    if (kindOf(spec.y) !== 'numeric') return '散点图的 Y 轴需要数值字段。';
+    if (!spec.x || !spec.y) return '散点图需要 X 和 Y 两个字段';
+    if (!['numeric', 'datetime'].includes(kindOf(spec.x))) return '散点图的 X 轴需要数值或时间字段';
+    if (kindOf(spec.y) !== 'numeric') return '散点图的 Y 轴需要数值字段';
   } else if (chart === 'box') {
-    if (!spec.y) return '箱线图需要 Y 轴数值字段。';
-    if (kindOf(spec.y) !== 'numeric') return '箱线图的 Y 轴需要数值字段。';
+    if (!spec.y) return '箱线图需要 Y 轴数值字段';
+    if (kindOf(spec.y) !== 'numeric') return '箱线图的 Y 轴需要数值字段';
   } else if (chart === 'pie') {
-    if (!spec.x) return '饼图需要 X 轴分类字段。';
-    if (!spec.y && spec.aggregation !== 'count') return '饼图需要 Y 轴，或把聚合改成「计数」。';
+    if (!spec.x) return '饼图需要 X 轴分类字段';
+    if (!spec.y && spec.aggregation !== 'count') return '饼图需要 Y 轴，或把聚合改成「计数」';
   } else {
-    if (!spec.x) return '请把字段拖到 X 轴。';
-    if (!spec.y && spec.aggregation !== 'count') return '请把数值字段拖到 Y 轴，或把聚合改成「计数」。';
+    if (!spec.x) return '请把字段拖到 X 轴';
+    if (!spec.y && spec.aggregation !== 'count') return '请把数值字段拖到 Y 轴，或把聚合改成「计数」';
   }
   return '';
 }
@@ -526,15 +544,15 @@ function specWarnings() {
   if (spec.x) {
     const unique = uniqueOf(spec.x);
     if (['bar', 'pie'].includes(spec.chart_type) && unique > 40 && !spec.top_n) {
-      items.push(`「${spec.x}」有 ${unique} 个取值，建议设置 Top N。`);
+      items.push(`「${spec.x}」有 ${unique} 个取值，建议设置 Top N`);
     }
   }
   if (spec.color) {
     const unique = uniqueOf(spec.color);
-    if (unique > 12) items.push(`颜色字段「${spec.color}」有 ${unique} 个取值，图例会偏多。`);
+    if (unique > 12) items.push(`颜色字段「${spec.color}」有 ${unique} 个取值，图例会偏多`);
   }
   if (spec.y && kindOf(spec.y) !== 'numeric' && !['none', 'count'].includes(spec.aggregation)) {
-    items.push(`「${spec.y}」不是数值列，非数值行会被忽略。`);
+    items.push(`「${spec.y}」不是数值列，非数值行会被忽略`);
   }
   return items;
 }
@@ -676,7 +694,7 @@ async function applySpec() {
 function renderExplore() {
   const box = $('#exploreList');
   if (!state.dataset) {
-    box.innerHTML = '<p class="hint">出图后这里会出现下一步建议。</p>';
+    box.innerHTML = '<p class="hint">出图后这里会出现下一步建议</p>';
     return;
   }
   const spec = state.spec;
@@ -732,19 +750,22 @@ function renderExplore() {
             `<button class="explore" type="button" data-explore="${index}">${esc(item.label)}</button>`
         )
         .join('')
-    : '<p class="hint">当前配置已经比较完整，可以试试右侧 AI 助手。</p>';
+    : '<p class="hint">当前配置已经比较完整，可以试试右侧 AI 助手</p>';
   box._items = picked;
 }
 
 /* ------------------------------------------------------------------ */
 /* 加载态 / 错误态                                                      */
 /* ------------------------------------------------------------------ */
-function showEmpty(icon, title, subtitle) {
+function showEmpty(glyph, title, subtitle) {
   $('#overlay').classList.remove('hidden');
   $('#loadingState').classList.add('hidden');
   const empty = $('#emptyState');
   empty.classList.remove('hidden');
-  empty.innerHTML = `<span aria-hidden="true">${esc(icon)}</span><b>${esc(title)}</b><small>${esc(subtitle)}</small>`;
+  const art = glyph === 'alert'
+    ? `<span class="empty-glyph small" aria-hidden="true">${icon('alert', 28)}</span>`
+    : EMPTY_GLYPH;
+  empty.innerHTML = `${art}<b>${esc(title)}</b><small>${esc(subtitle)}</small>`;
 }
 
 function showLoading(text) {
@@ -771,10 +792,10 @@ function showError(err) {
   if (err.requestId) parts.push(`<p>请求编号：${esc(err.requestId)}</p>`);
   box.innerHTML = parts.join('');
   if (!state.chartJson) {
-    showEmpty('⚠️', '这次没画出来', '按上方提示调整后再试一次');
+    showEmpty('alert', '这次没画出来', '按上方提示调整后再试一次');
   }
   setExportEnabled(Boolean(state.chartJson));
-  $('#footnote').textContent = '免费模型偶尔会限流，稍等几秒重试即可。';
+  $('#footnote').textContent = '免费模型偶尔会限流，稍等几秒重试即可';
 }
 
 function hideError() {
@@ -957,8 +978,8 @@ function applyResult(data, source) {
   setExportEnabled(true);
   $('#footnote').textContent =
     source === 'spec'
-      ? '这条路径不调用模型，图表由视觉通道确定性编译。'
-      : '模型生成 + 沙箱执行 + 失败自愈完成。';
+      ? '这条路径不调用模型，图表由视觉通道确定性编译'
+      : '模型生成 + 沙箱执行 + 失败自愈完成';
 }
 
 function setBusy(busy, mode = '') {
@@ -989,11 +1010,12 @@ function newSession() {
 /* ------------------------------------------------------------------ */
 function themedLayout(rawLayout) {
   const dark = state.theme === 'dark';
-  const text = cssVar('--text') || '#0f172a';
-  const muted = cssVar('--muted') || '#64748b';
-  const border = cssVar('--border-strong') || '#cbd5e1';
-  const grid = dark ? 'rgba(148, 163, 184, 0.14)' : 'rgba(100, 116, 139, 0.14)';
-  const line = dark ? 'rgba(148, 163, 184, 0.3)' : 'rgba(100, 116, 139, 0.3)';
+  const text = cssVar('--text') || '#1e1c18';
+  const muted = cssVar('--text-2') || '#56534c';
+  const border = cssVar('--border-strong') || 'rgba(30, 28, 24, 0.22)';
+  const surface = cssVar('--surface') || '#fffefb';
+  const grid = dark ? 'rgba(236, 233, 225, 0.10)' : 'rgba(30, 28, 24, 0.09)';
+  const line = dark ? 'rgba(236, 233, 225, 0.22)' : 'rgba(30, 28, 24, 0.20)';
 
   let layout;
   try {
@@ -1014,7 +1036,7 @@ function themedLayout(rawLayout) {
   layout.legend.font = Object.assign({}, layout.legend.font, { color: text });
 
   layout.hoverlabel = Object.assign({}, layout.hoverlabel, {
-    bgcolor: dark ? '#0f172a' : '#ffffff',
+    bgcolor: surface,
     bordercolor: border,
   });
   layout.hoverlabel.font = Object.assign({}, layout.hoverlabel.font, { color: text });
@@ -1034,6 +1056,47 @@ function themedLayout(rawLayout) {
   });
 
   return layout;
+}
+
+/* 只把 Plotly 模板的默认配色换成工作台的墨蓝 + 中性色阶。
+   模型自己指定的颜色原样保留，不改变图里颜色本来的含义。 */
+const PLOTLY_DEFAULTS = [
+  '#636efa', '#ef553b', '#00cc96', '#ab63fa', '#ffa15a',
+  '#19d3f3', '#ff6692', '#b6e880', '#ff97ff', '#fecb52',
+  '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+];
+
+function themedTraces(rawData) {
+  const dark = state.theme === 'dark';
+  const accent = cssVar('--accent') || '#2b5f9e';
+  const palette = dark
+    ? [accent, '#9aa0ab', '#b1a79a', '#7fa89b', '#c0a184']
+    : [accent, '#6e7c8c', '#8a8478', '#5c8a7d', '#9a7b62'];
+  const swap = (value) => {
+    const hit = PLOTLY_DEFAULTS.indexOf(String(value || '').toLowerCase());
+    return hit === -1 ? value : palette[hit % palette.length];
+  };
+  return (Array.isArray(rawData) ? rawData : []).map((raw) => {
+    let trace;
+    try {
+      trace = JSON.parse(JSON.stringify(raw || {}));
+    } catch {
+      return raw;
+    }
+    if (trace.line && typeof trace.line === 'object' && typeof trace.line.color === 'string') {
+      trace.line.color = swap(trace.line.color);
+    }
+    if (trace.marker && typeof trace.marker === 'object') {
+      if (typeof trace.marker.color === 'string') trace.marker.color = swap(trace.marker.color);
+      if (Array.isArray(trace.marker.color)) trace.marker.color = trace.marker.color.map(swap);
+      if (Array.isArray(trace.marker.colors)) trace.marker.colors = trace.marker.colors.map(swap);
+      if (trace.marker.line && typeof trace.marker.line.color === 'string') {
+        trace.marker.line.color = swap(trace.marker.line.color);
+      }
+    }
+    if (typeof trace.fillcolor === 'string') trace.fillcolor = swap(trace.fillcolor);
+    return trace;
+  });
 }
 
 function plotConfig() {
@@ -1065,7 +1128,7 @@ async function renderChart(chartJson) {
   }
 
   const layout = themedLayout(figure.layout || {});
-  await Plotly.react('chart', figure.data || [], layout, plotConfig());
+  await Plotly.react('chart', themedTraces(figure.data), layout, plotConfig());
   hideLoading();
   requestAnimationFrame(() => {
     try {
@@ -1221,7 +1284,7 @@ async function loadHistory() {
         </button>`
           )
           .join('')
-      : '<p class="hint">还没有历史图表，先生成一张吧。</p>';
+      : '<p class="hint">还没有历史图表，先生成一张吧</p>';
 
     sessionList.innerHTML = sessions.length
       ? sessions
@@ -1233,7 +1296,7 @@ async function loadHistory() {
         </button>`
           )
           .join('')
-      : '<p class="hint">还没有会话。</p>';
+      : '<p class="hint">还没有会话</p>';
   } catch (err) {
     chartList.innerHTML = `<p class="hint">读取失败：${esc(err.message)}</p>`;
     sessionList.innerHTML = '';
